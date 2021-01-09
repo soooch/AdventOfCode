@@ -9,21 +9,22 @@ fn main() -> io::Result<()> {
             let indices = sections.next()
                 .expect("can't isolate range")
                 .split('-')
-                .filter_map(|s| s.parse::<usize>().ok())
-                .map(|index| index - 1)
-                .collect::<Vec<usize>>();
+                .filter_map(|s| s.parse::<usize>().ok());
             let letter = sections.next().expect("can't isolate rule").chars().next().expect("failed to get rule char");
             let password = sections.next().expect("can't isolate password");
 
-            return if 
-            (password.chars().nth(indices[0]).expect("could not check password for first rule character") == letter) 
-            ^ 
-            (password.chars().nth(indices[1]).expect("could not check password for second rule character") == letter) 
-            {
+            let indices = indices
+                .map(|index| {
+                    password.chars()
+                        .nth(index - 1)
+                        .expect("could not check password for rule char") == letter
+                })
+                .fold(false, |acc, x| acc ^ x);
+            
+
+            return if indices {
                 num + 1
-            } 
-            else 
-            {
+            } else {
                 num
             }
         });
