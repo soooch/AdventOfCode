@@ -6,7 +6,7 @@ fn main() -> io::Result<()> {
     io::stdin().read_to_string(&mut buffer)?;
     let report = buffer.lines()
         .filter_map(|s| s.parse::<i32>().ok())
-        .map(|entry| if entry > YEAR / 2 {YEAR - entry} else {entry});
+        .map(|entry| if entry < YEAR / 2 {YEAR - entry} else {entry});
     
     let mut visited = HashSet::new();
 

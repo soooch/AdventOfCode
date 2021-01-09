@@ -8,8 +8,8 @@ fn main() -> io::Result<()> {
         .filter_map(|s| s.parse::<i32>().ok())
         .collect::<Vec<i32>>();
     
-    for entry in report.iter() {
-        if let Some(product) = two_sum(YEAR - entry, report.clone()) {
+    for &entry in &report {
+        if let Some(product) = two_num_sum_product(YEAR - entry, &report) {
             println!("{}", entry * product);
             break;
         }
@@ -18,17 +18,10 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn two_sum(sum: i32, report: Vec<i32>) -> Option<i32> {
-    let report = report.iter()
-        .filter_map(|&entry| if entry < sum / 2 {Some(sum - entry)} else if entry > sum {None} else {Some(entry)});
-
+fn two_num_sum_product(sum: i32, report: &Vec<i32>) -> Option<i32> {
     let mut visited = HashSet::new();
-
-    for entry in report {
-        if !visited.insert(entry) {
-            return Some(entry * (sum - entry));
-        }
-    }
-
-    None
+    report.iter()
+        .filter_map(|&entry| if entry < sum / 2 {Some(sum - entry)} else if entry > sum {None} else {Some(entry)})
+        .find(|&entry| !visited.insert(entry))
+        .map(|addend| addend * (sum - addend))
 }
