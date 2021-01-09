@@ -22,11 +22,7 @@ fn main() -> io::Result<()> {
                 .fold(false, |acc, x| acc ^ x);
             
 
-            return if indices {
-                num + 1
-            } else {
-                num
-            }
+            return if indices {num + 1} else {num}
         });
 
     println!("{}", num_valid);
