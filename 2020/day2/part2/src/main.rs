@@ -10,7 +10,8 @@ fn main() -> io::Result<()> {
                 .expect("can't isolate range")
                 .split('-')
                 .filter_map(|s| s.parse::<usize>().ok());
-            let letter = sections.next().expect("can't isolate rule").chars().next().expect("failed to get rule char");
+            let letter = sections.next().expect("can't isolate rule")
+                .chars().next().expect("failed to get rule char");
             let password = sections.next().expect("can't isolate password");
 
             let indices = indices
