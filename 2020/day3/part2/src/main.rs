@@ -4,20 +4,17 @@ fn main() -> io::Result<()> {
     let mut buffer = String::new();
     io::stdin().read_to_string(&mut buffer)?;
 
-    let normal_part = (1..=7).step_by(2).fold(1, |product, slope| {
-        product * buffer.lines().enumerate()
-        .fold(0, |count, (line_num, tree_row)| {
-            let check_idx = (line_num * slope) % tree_row.len();
-            return if tree_row.chars().nth(check_idx) == Some('#') {count + 1} else {count}
-        })
+    let slopes = [(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)];
+
+    let trees_product = slopes.iter().fold(1, |product, (right, down)| {
+        product * buffer.lines().step_by(*down).enumerate()
+            .fold(0, |count, (line_num, tree_row)| {
+                let check_idx = (line_num * right) % tree_row.len();
+                return if tree_row.chars().nth(check_idx) == Some('#') {count + 1} else {count}
+            })
     });
 
-    let annoying_part  = buffer.lines().step_by(2).enumerate()
-        .fold(0, |count, (line_num, tree_row)| {
-            return if tree_row.chars().nth(line_num % tree_row.len()) == Some('#') {count + 1} else {count}
-        });
-
-    println!("{}", normal_part * annoying_part);
+    println!("{}", trees_product);
 
     Ok(())
 }
