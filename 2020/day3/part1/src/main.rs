@@ -9,7 +9,7 @@ fn main() -> io::Result<()> {
     let num_trees = buffer.lines().enumerate()
         .fold(0, |count, (line_num, tree_row)| {
             let check_idx = (line_num * SLOPE) % tree_row.len();
-            return if tree_row.chars().nth(check_idx) == Some('#') {count + 1} else {count}
+            if tree_row.chars().nth(check_idx) == Some('#') {count + 1} else {count}
         });
 
     println!("{}", num_trees);
