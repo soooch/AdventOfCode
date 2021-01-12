@@ -41,9 +41,9 @@ fn validate_eyr(eyr: &str) -> bool {
 
 fn validate_hgt(hgt: &str) -> bool {
     if hgt.ends_with("cm") {
-        num_str_in_range(hgt.trim_end_matches("cm"), 150, 193)
+        num_str_in_range(&hgt[..hgt.len()-2], 150, 193)
     } else if hgt.ends_with("in") {
-        num_str_in_range(hgt.trim_end_matches("in"), 59, 76)
+        num_str_in_range(&hgt[..hgt.len()-2], 59, 76)
     } else {false}
 }
 
@@ -54,7 +54,7 @@ fn num_str_in_range(num_str: &str, start: i32, end: i32) -> bool {
 fn validate_hcl(hcl: &str) -> bool {
     if hcl.starts_with('#') {
         if hcl.len() == 7 {
-            return !hcl.trim_start_matches('#').chars().any(|c| !c.is_ascii_hexdigit());
+            return !&hcl[1..].chars().any(|c| !c.is_ascii_hexdigit());
         }
     }
     false
