@@ -23,7 +23,7 @@ fn main() -> io::Result<()> {
     let max_seat = seats.iter().max().unwrap().clone();
 
     let missing = (min_seat..=max_seat).fold(0, |acc, num| acc ^ num) 
-                      ^ seats.iter().fold(0, |acc, num| acc ^ num);
+                  ^ seats.iter().fold(0, |acc, num| acc ^ num);
 
     println!("{}", missing);
 
