@@ -7,10 +7,9 @@ fn main() -> io::Result<()> {
     let sum = buffer.split("\n\n")
         .fold(0, |acc, group| {
             let mut yesses: u32 = 0;
-            group.chars().for_each(|q| {
-                match q {
-                    'a'..='z' => yesses |= 1 << (q as u32 - 'a' as u32),
-                    _ => (),
+            group.bytes().for_each(|q| {
+                if (b'a'..=b'z').contains(&q) {
+                    yesses |= 1 << (q - b'a');
                 }
             });
             acc + yesses.count_ones()
