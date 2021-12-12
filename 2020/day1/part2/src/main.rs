@@ -1,5 +1,6 @@
 use std::io::{self, Read};
 use std::collections::HashSet;
+
 fn main() -> io::Result<()> {
     const YEAR: i32 = 2020;
     let mut buffer = String::new();
