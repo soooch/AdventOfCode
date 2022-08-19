@@ -1,7 +1,5 @@
-#![feature(trusted_len)]
-
 use num_traits::PrimInt;
-use std::iter::{FusedIterator, TrustedLen};
+use std::iter::FusedIterator;
 use std::mem::MaybeUninit;
 
 fn main() {
@@ -216,8 +214,6 @@ impl Iterator for NibbleBits {
 impl ExactSizeIterator for NibbleBits {}
 
 impl FusedIterator for NibbleBits {}
-
-unsafe impl TrustedLen for NibbleBits {}
 
 // next_n stuff
 trait NextN: Iterator {
