@@ -1,6 +1,3 @@
-#![feature(portable_simd)]
-#![feature(stdsimd)]
-#![feature(array_windows)]
 #![feature(array_zip)]
 
 const WORD_LEN: usize = 12;
@@ -24,6 +21,8 @@ fn main() {
 
     let gamma = gamma.iter().fold(0, |num, &b| (num << 1) | b as u32);
     let epsilon = !gamma & 0x0FFF;
+
+    println!("{}", gamma);
 
     println!("{:?}", gamma * epsilon);
 

@@ -5,11 +5,11 @@ fn main() {
 
     let nums = input
         .lines()
-        .filter_map(|num| num.parse().ok())
+        .map(|num| num.parse().unwrap())
         .collect::<Vec<u32>>();
 
     let answer = nums
-        .array_windows::<2>()
+        .array_windows()
         .filter(|[a, b]| a < b)
         .count();
 
