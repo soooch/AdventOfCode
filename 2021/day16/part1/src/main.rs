@@ -15,9 +15,24 @@ fn main() {
 
     println!("{packet:?}");
 
-    let version_sum = sum_of_versions(packet);
+    let solution = solve(&packet).unwrap();
 
-    println!("{version_sum}");
+    println!("{solution}");
+}
+
+fn solve(p: &Packet) -> Option<usize> {
+    let packet_values = |sp: &Vec<_>| sp.iter().map(solve).collect::<Option<Vec<_>>>();
+    let solution = match &p.body {
+        PacketBody::Literal(l) => *l,
+        PacketBody::Sum(sp) => packet_values(sp)?.into_iter().sum(),
+        PacketBody::Product(sp) => packet_values(sp)?.into_iter().product(),
+        PacketBody::Minimum(sp) => packet_values(sp)?.into_iter().min()?,
+        PacketBody::Maximum(sp) => packet_values(sp)?.into_iter().max()?,
+        PacketBody::Greater(sp) => (solve(&sp[0])? > solve(&sp[1])?) as usize,
+        PacketBody::Less(sp) => (solve(&sp[0])? < solve(&sp[1])?) as usize,
+        PacketBody::Equal(sp) => (solve(&sp[0])? == solve(&sp[1])?) as usize,
+    };
+    Some(solution)
 }
 
 fn sum_of_versions(p: Packet) -> usize {
@@ -77,7 +92,7 @@ fn packets_from_bits_t1(
     Ok(subpackets)
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 struct Packet {
     version: u8,
     body: PacketBody,
@@ -96,7 +111,7 @@ impl Packet {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum PacketBody {
     Literal(usize),
     Sum(Vec<Packet>),
