@@ -21,10 +21,18 @@ fn main() {
 }
 
 fn sum_of_versions(p: Packet) -> usize {
+    let vec_sum = |sp: Vec<Packet>| sp.into_iter().map(sum_of_versions).sum();
+
     p.version as usize
         + match p.body {
             PacketBody::Literal(_) => 0,
-            PacketBody::Operator(sp) => sp.into_iter().map(sum_of_versions).sum(),
+            PacketBody::Sum(sp) => vec_sum(sp),
+            PacketBody::Product(sp) => vec_sum(sp),
+            PacketBody::Minimum(sp) => vec_sum(sp),
+            PacketBody::Maximum(sp) => vec_sum(sp),
+            PacketBody::Greater(sp) => vec_sum(sp),
+            PacketBody::Less(sp) => vec_sum(sp),
+            PacketBody::Equal(sp) => vec_sum(sp),
         }
 }
 
@@ -80,17 +88,10 @@ impl Packet {
         let version = bits
             .next_n::<3>()
             .ok_or("Expected packet version, but bit stream ended")?;
-        let type_id = bits
-            .next_n::<3>()
-            .ok_or("Expected packet type ID, but bit stream ended")?;
-
         let version = u8::from_bits(version);
-        let type_id = u8::from_bits(type_id);
 
-        let body = match type_id {
-            4 => PacketBody::literal_from_bits(bits)?,
-            _ => PacketBody::operator_from_bits(bits)?,
-        };
+        let body = PacketBody::from_bits(bits)?;
+
         Ok(Packet { version, body })
     }
 }
@@ -98,10 +99,49 @@ impl Packet {
 #[derive(Debug)]
 enum PacketBody {
     Literal(usize),
-    Operator(Vec<Packet>),
+    Sum(Vec<Packet>),
+    Product(Vec<Packet>),
+    Minimum(Vec<Packet>),
+    Maximum(Vec<Packet>),
+    Greater(Vec<Packet>),
+    Less(Vec<Packet>),
+    Equal(Vec<Packet>),
 }
 
 impl PacketBody {
+    fn from_bits(bits: &mut impl Iterator<Item = bool>) -> Result<Self, &'static str> {
+        let type_id = bits
+            .next_n::<3>()
+            .ok_or("Expected packet type ID, but bit stream ended")?;
+        let type_id = u8::from_bits(type_id);
+
+        match type_id {
+            4 => Self::literal_from_bits(bits),
+            op => {
+                let length_type = bits
+                    .next()
+                    .ok_or("Expected length type ID, but bit stream ended")?;
+
+                let mut get_vec_packets = || match length_type {
+                    false => packets_from_bits_t0(bits),
+                    true => packets_from_bits_t1(bits),
+                };
+
+                let body = match op {
+                    0 => Self::Sum(get_vec_packets()?),
+                    1 => Self::Product(get_vec_packets()?),
+                    2 => Self::Minimum(get_vec_packets()?),
+                    3 => Self::Maximum(get_vec_packets()?),
+                    5 => Self::Greater(get_vec_packets()?),
+                    6 => Self::Less(get_vec_packets()?),
+                    7 => Self::Equal(get_vec_packets()?),
+                    _ => Err("Unrecognized Operation")?,
+                };
+
+                Ok(body)
+            }
+        }
+    }
     fn literal_from_bits(bits: &mut impl Iterator<Item = bool>) -> Result<Self, &'static str> {
         let append_bits = |acc, frag| (acc << 4) | u8::from_bits(frag) as usize;
         let mut lit_acc = 0;
@@ -114,16 +154,6 @@ impl PacketBody {
                 }
                 None => break Err("Expected literal value, but bit stream ended"),
             }
-        }
-    }
-
-    fn operator_from_bits(
-        bits: &mut impl Iterator<Item = bool>,
-    ) -> Result<PacketBody, &'static str> {
-        match bits.next() {
-            Some(false) => Ok(Self::Operator(packets_from_bits_t0(bits)?)),
-            Some(true) => Ok(Self::Operator(packets_from_bits_t1(bits)?)),
-            None => Err("Expected length type ID, but bit stream ended"),
         }
     }
 }
