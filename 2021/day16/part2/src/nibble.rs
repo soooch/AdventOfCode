@@ -1,6 +1,6 @@
 //! For when a byte is a bit (or four) too much.
 
-use std::iter::FusedIterator;
+use core::iter::FusedIterator;
 
 /// A Nibble is used to represent a 4 bit value. It is half of a byte.
 pub struct Nibble(u8);

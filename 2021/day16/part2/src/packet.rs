@@ -1,8 +1,8 @@
 //! Logic for parsing and computing the "packet" language in day 16 of Advent of Code 2021
 
 use crate::util::{Fencable, FromBits};
-use std::cmp;
-use std::ops::{Add, Mul};
+use core::cmp;
+use core::ops::{Add, Mul};
 
 /// Returns either the solution to the given packet or an error.
 ///
@@ -104,6 +104,7 @@ where
     while subpacket_bits.remaining() > 0 {
         accum = f(accum, compute(&mut subpacket_bits)?);
     }
+
     Ok(accum)
 }
 
@@ -129,7 +130,7 @@ where
     let num_bits = get_length_t0(bits)?;
 
     // TODO: try to remove this line
-    let mut bits: Box<dyn Iterator<Item = bool>> = Box::new(bits);
+    //let mut bits: Box<dyn Iterator<Item = bool>> = Box::new(bits);
 
     let mut subpacket_bits = bits.fence(num_bits as usize);
 
