@@ -1,8 +1,8 @@
 //! Logic for parsing and computing the "packet" language in day 16 of Advent of Code 2021
 
 use crate::util::{Fencable, FromBits};
-use std::cmp;
-use std::ops::{Add, Mul};
+use core::cmp;
+use core::ops::{Add, Mul};
 
 /// Returns either the solution to the given packet or an error.
 ///
@@ -11,35 +11,43 @@ use std::ops::{Add, Mul};
 pub fn compute(bits: &mut impl Iterator<Item = bool>) -> Result<usize, &'static str> {
     let (_version, operation) = get_header(bits)?;
 
+    fn get_length_type(bits: &mut impl Iterator<Item = bool>) -> Result<bool, &'static str> {
+        bits.next()
+            .ok_or("Expected length type ID, but bit stream ended")
+    }
+
+    fn reduce(
+        f: fn(usize, usize) -> usize,
+        bits: &mut impl Iterator<Item = bool>,
+    ) -> Result<usize, &'static str> {
+        let length_type_id = get_length_type(bits)?;
+        match length_type_id {
+            false => reduce_t0(f, bits),
+            true => reduce_t1(f, bits),
+        }
+    }
+
+    fn compare(
+        f: fn(usize, usize) -> bool,
+        bits: &mut impl Iterator<Item = bool>,
+    ) -> Result<usize, &'static str> {
+        let length_type_id = get_length_type(bits)?;
+        match length_type_id {
+            false => compare_t0(f, bits),
+            true => compare_t1(f, bits),
+        }
+    }
+
     use Operation as Op;
     match operation {
         Op::Literal => literal(bits),
-        rest => {
-            let length_type_id = bits
-                .next()
-                .ok_or("Expected length type ID, but bit stream ended")?;
-
-            let reduce = move |f: fn(usize, usize) -> usize, bits| match length_type_id {
-                false => reduce_t0(f, bits),
-                true => reduce_t1(f, bits),
-            };
-
-            let compare = move |f: fn(usize, usize) -> bool, bits| match length_type_id {
-                false => compare_t0(f, bits),
-                true => compare_t1(f, bits),
-            };
-
-            match rest {
-                Op::Sum => reduce(Add::add, bits),
-                Op::Product => reduce(Mul::mul, bits),
-                Op::Minimum => reduce(cmp::min, bits),
-                Op::Maximim => reduce(cmp::max, bits),
-                Op::Greater => compare(|a, b| a > b, bits),
-                Op::Less => compare(|a, b| a < b, bits),
-                Op::Equal => compare(|a, b| a == b, bits),
-                _ => unsafe { std::hint::unreachable_unchecked() },
-            }
-        }
+        Op::Sum => reduce(Add::add, bits),
+        Op::Product => reduce(Mul::mul, bits),
+        Op::Minimum => reduce(cmp::min, bits),
+        Op::Maximim => reduce(cmp::max, bits),
+        Op::Greater => compare(|a, b| a > b, bits),
+        Op::Less => compare(|a, b| a < b, bits),
+        Op::Equal => compare(|a, b| a == b, bits),
     }
 }
 
@@ -104,6 +112,7 @@ where
     while subpacket_bits.remaining() > 0 {
         accum = f(accum, compute(&mut subpacket_bits)?);
     }
+
     Ok(accum)
 }
 

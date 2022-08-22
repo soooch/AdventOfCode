@@ -1,7 +1,7 @@
 //! A few small and unrelated utility things.
 
+use core::mem::MaybeUninit;
 use num_traits::PrimInt;
-use std::mem::MaybeUninit;
 
 /// A trait providing the [from_bits](FromBits::from_bits) method for integers
 pub trait FromBits: PrimInt + From<bool> {
