@@ -1,6 +1,6 @@
 //! Logic for parsing and computing the "packet" language in day 16 of Advent of Code 2021
 
-use crate::util::{Fencable, FromBits, NextN};
+use crate::util::{Fencable, FromBits};
 use std::cmp;
 use std::ops::{Add, Mul};
 
@@ -44,17 +44,47 @@ pub fn compute(bits: &mut impl Iterator<Item = bool>) -> Result<usize, &'static 
 }
 
 fn literal(bits: &mut impl Iterator<Item = bool>) -> Result<usize, &'static str> {
-    let append_bits = |acc, frag| (acc << 4) | u8::from_bits(frag) as usize;
-    let mut lit_acc = 0;
-    loop {
-        match bits.next_n::<5>() {
-            Some([true, frag @ ..]) => lit_acc = append_bits(lit_acc, frag),
-            Some([false, frag @ ..]) => {
-                let lit_acc = append_bits(lit_acc, frag);
-                break Ok(lit_acc);
-            }
-            None => break Err("Expected literal value, but bit stream ended"),
+    Ok(usize::from_bits(&mut LiteralBits::new(bits)))
+}
+
+struct LiteralBits<'a, I> {
+    inner: &'a mut I,
+    state: u8,
+    last: bool,
+}
+
+impl<'a, I> LiteralBits<'a, I> {
+    #[inline]
+    fn new(inner: &'a mut I) -> Self {
+        LiteralBits {
+            inner,
+            state: 0,
+            last: false,
         }
+    }
+}
+
+impl<'a, I> Iterator for LiteralBits<'a, I>
+where
+    I: Iterator<Item = bool>,
+{
+    type Item = bool;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.state == 0 {
+            if self.last == true {
+                return None;
+            } else {
+                let group_id = self.inner.next()?;
+                if !group_id {
+                    self.last = true;
+                }
+                self.state = 4;
+            }
+        }
+        self.state -= 1;
+        self.inner.next()
     }
 }
 
@@ -64,7 +94,7 @@ where
 {
     let num_bits = get_length_t0(bits)?;
 
-    // type erasure. this line sucks
+    // TODO: try to remove this line
     let mut bits: Box<dyn Iterator<Item = bool>> = Box::new(bits);
 
     let mut subpacket_bits = bits.fence(num_bits as usize);
@@ -98,7 +128,7 @@ where
 {
     let num_bits = get_length_t0(bits)?;
 
-    // type erasure. this line sucks
+    // TODO: try to remove this line
     let mut bits: Box<dyn Iterator<Item = bool>> = Box::new(bits);
 
     let mut subpacket_bits = bits.fence(num_bits as usize);
@@ -130,35 +160,38 @@ where
 
 #[inline]
 fn get_header(bits: &mut impl Iterator<Item = bool>) -> Result<(u8, Operation), &'static str> {
-    let version = bits
-        .next_n::<3>()
-        .ok_or("Expected packet version, but bit stream ended")?;
-    let type_id = bits
-        .next_n::<3>()
-        .ok_or("Expected packet type ID, but bit stream ended")?;
-
-    let version = u8::from_bits(version);
-    let operation = u8::from_bits(type_id).try_into()?;
+    let mut version_bits = bits.fence(3);
+    let version = u8::from_bits(&mut version_bits);
+    if version_bits.remaining() != 0 {
+        return Err("Expected packet version, but bit stream ended");
+    }
+    let mut operation_bits = bits.fence(3);
+    let operation = u8::from_bits(&mut operation_bits).try_into()?;
+    if operation_bits.remaining() != 0 {
+        return Err("Expected packet type ID, but bit stream ended");
+    }
 
     Ok((version, operation))
 }
 
 #[inline]
 fn get_length_t0(bits: &mut impl Iterator<Item = bool>) -> Result<u16, &'static str> {
-    let num_bits = bits
-        .next_n::<15>()
-        .ok_or("Expected type 0 length, but bit stream ended")?;
-
-    Ok(u16::from_bits(num_bits))
+    let mut length_bits = bits.fence(15);
+    let num_bits = u16::from_bits(&mut length_bits);
+    if length_bits.remaining() != 0 {
+        return Err("Expected type 0 length, but bit stream ended");
+    }
+    Ok(num_bits)
 }
 
 #[inline]
 fn get_length_t1(bits: &mut impl Iterator<Item = bool>) -> Result<u16, &'static str> {
-    let num_packets = bits
-        .next_n::<11>()
-        .ok_or("Expected type 1 length, but bit stream ended")?;
-
-    Ok(u16::from_bits(num_packets))
+    let mut length_bits = bits.fence(11);
+    let num_packets = u16::from_bits(&mut length_bits);
+    if length_bits.remaining() != 0 {
+        return Err("Expected type 1 length, but bit stream ended");
+    }
+    Ok(num_packets)
 }
 
 enum Operation {

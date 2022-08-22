@@ -6,17 +6,18 @@ use std::mem::MaybeUninit;
 /// A trait providing the [from_bits](FromBits::from_bits) method for integers
 pub trait FromBits: PrimInt + From<bool> {
     /// Contructs `Self` from an iterator over bits from MSB to LSB
-    fn from_bits<I>(bits: I) -> Self
+    #[inline]
+    fn from_bits<I>(bits: &mut I) -> Self
     where
-        I: IntoIterator<Item = bool>,
+        I: Iterator<Item = bool>,
     {
-        bits.into_iter()
-            .fold(Self::zero(), |acc, b| (acc << 1) | b.into())
+        bits.fold(Self::zero(), |acc, b| (acc << 1) | b.into())
     }
 }
 
 impl FromBits for u8 {}
 impl FromBits for u16 {}
+impl FromBits for usize {}
 
 /// A trait providing the [next_n](NextN::next_n) method for Iterators
 pub trait NextN: Iterator {
@@ -48,10 +49,12 @@ pub struct Fence<'a, I> {
 }
 
 impl<'a, I> Fence<'a, I> {
+    #[inline]
     pub fn new(inner: &'a mut I, limit: usize) -> Fence<I> {
         Fence { inner, limit }
     }
 
+    #[inline]
     pub fn remaining(&self) -> usize {
         self.limit
     }

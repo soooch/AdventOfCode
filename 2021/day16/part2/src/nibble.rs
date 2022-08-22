@@ -10,6 +10,7 @@ impl Nibble {
     ///
     /// # Arguments
     /// * `hex` - A u8 value interpreted as an ASCII character
+    #[inline]
     pub const fn from_hex_ascii(hex: u8) -> Result<Self, &'static str> {
         match hex {
             c @ b'0'..=b'9' => Ok(Nibble(c - b'0')),
@@ -20,6 +21,7 @@ impl Nibble {
 
     /// Returns an [Iterator] which iterates over each bit.
     /// Iterates from the most significant bit to the least significant bit
+    #[inline]
     pub fn into_bits(self) -> NibbleBits {
         NibbleBits::new(self)
     }
@@ -33,10 +35,12 @@ pub struct NibbleBits {
 }
 
 impl NibbleBits {
+    #[inline]
     fn new(nibble: Nibble) -> Self {
         Self { len: 4, nibble }
     }
 
+    #[inline]
     fn shift(&mut self) {
         self.nibble.0 <<= 1;
         self.len -= 1;
