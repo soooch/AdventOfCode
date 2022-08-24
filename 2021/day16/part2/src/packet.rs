@@ -12,7 +12,7 @@ pub fn compute(bits: &mut impl Iterator<Item = bool>) -> ComputationResult {
     let ((_version, operation), header_bits_read) = get_header(bits)?;
 
     use Operation as Op;
-    let mut operation = match operation {
+    let mut output = match operation {
         Op::Sum => reduce(Add::add, bits),
         Op::Product => reduce(Mul::mul, bits),
         Op::Minimum => reduce(cmp::min, bits),
@@ -22,8 +22,8 @@ pub fn compute(bits: &mut impl Iterator<Item = bool>) -> ComputationResult {
         Op::Less => compare(|a, b| a < b, bits),
         Op::Equal => compare(|a, b| a == b, bits),
     }?;
-    operation.bits_read += header_bits_read;
-    Ok(operation)
+    output.bits_read += header_bits_read;
+    Ok(output)
 }
 
 fn literal(bits: &mut impl Iterator<Item = bool>) -> ComputationResult {
