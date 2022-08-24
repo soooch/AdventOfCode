@@ -10,7 +10,7 @@ pub fn main() {
         .map(|b| Nibble::from_hex_ascii(b).unwrap())
         .flat_map(Nibble::into_bits);
 
-    let solution = packet::compute(&mut bits).unwrap();
+    let solution = packet::compute(&mut bits).unwrap().value;
 
     println!("{solution}");
 }

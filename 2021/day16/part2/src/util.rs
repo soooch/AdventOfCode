@@ -1,23 +1,6 @@
 //! A few small and unrelated utility things.
 
 use core::mem::MaybeUninit;
-use num_traits::PrimInt;
-
-/// A trait providing the [from_bits](FromBits::from_bits) method for integers
-pub trait FromBits: PrimInt + From<bool> {
-    /// Contructs `Self` from an iterator over bits from MSB to LSB
-    #[inline]
-    fn from_bits<I>(bits: &mut I) -> Self
-    where
-        I: Iterator<Item = bool>,
-    {
-        bits.fold(Self::zero(), |acc, b| (acc << 1) | b.into())
-    }
-}
-
-impl FromBits for u8 {}
-impl FromBits for u16 {}
-impl FromBits for usize {}
 
 /// A trait providing the [next_n](NextN::next_n) method for Iterators
 pub trait NextN: Iterator {
