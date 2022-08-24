@@ -88,10 +88,10 @@ fn reduce(
     Ok(reduction)
 }
 
-fn reduce_t0<F>(mut f: F, bits: &mut impl Iterator<Item = bool>) -> ComputationResult
-where
-    F: FnMut(usize, usize) -> usize,
-{
+fn reduce_t0(
+    f: fn(usize, usize) -> usize,
+    bits: &mut impl Iterator<Item = bool>,
+) -> ComputationResult {
     let (num_bits, num_bits_bits_read) = get_length_t0(bits)?;
     let num_bits = num_bits as usize;
 
@@ -107,10 +107,10 @@ where
     Ok(accum)
 }
 
-fn reduce_t1<F>(mut f: F, bits: &mut impl Iterator<Item = bool>) -> ComputationResult
-where
-    F: FnMut(usize, usize) -> usize,
-{
+fn reduce_t1(
+    f: fn(usize, usize) -> usize,
+    bits: &mut impl Iterator<Item = bool>,
+) -> ComputationResult {
     let (num_packets, num_packets_bits_read) = get_length_t1(bits)?;
 
     let mut accum = compute(bits)?;
@@ -140,10 +140,10 @@ fn compare(
     Ok(comparison)
 }
 
-fn compare_t0<F>(mut f: F, bits: &mut impl Iterator<Item = bool>) -> ComputationResult
-where
-    F: FnMut(usize, usize) -> bool,
-{
+fn compare_t0(
+    f: fn(usize, usize) -> bool,
+    bits: &mut impl Iterator<Item = bool>,
+) -> ComputationResult {
     let (num_bits, num_bits_bits_read) = get_length_t0(bits)?;
 
     let first = compute(bits)?;
@@ -163,10 +163,10 @@ where
     }
 }
 
-fn compare_t1<F>(mut f: F, bits: &mut impl Iterator<Item = bool>) -> ComputationResult
-where
-    F: FnMut(usize, usize) -> bool,
-{
+fn compare_t1(
+    f: fn(usize, usize) -> bool,
+    bits: &mut impl Iterator<Item = bool>,
+) -> ComputationResult {
     let (num_packets, num_packets_bits_read) = get_length_t1(bits)?;
     if num_packets != 2 {
         Err("Comparison operation length field did not match exactly two subpackets")
