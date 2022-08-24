@@ -11,45 +11,6 @@ use num_traits::PrimInt;
 pub fn compute(bits: &mut impl Iterator<Item = bool>) -> ComputationResult {
     let ((_version, operation), header_bits_read) = get_header(bits)?;
 
-    #[inline]
-    fn get_length_type(
-        bits: &mut impl Iterator<Item = bool>,
-    ) -> Result<(bool, usize), ComputeError> {
-        const LENGTH_TYPE_FIELD_SIZE: usize = 1;
-        let length_type_id = bits
-            .next()
-            .ok_or("Expected length type ID, but bit stream ended")?;
-        Ok((length_type_id, LENGTH_TYPE_FIELD_SIZE))
-    }
-
-    #[inline]
-    fn reduce(
-        f: fn(usize, usize) -> usize,
-        bits: &mut impl Iterator<Item = bool>,
-    ) -> ComputationResult {
-        let (length_type_id, length_type_bits_read) = get_length_type(bits)?;
-        let mut reduction = match length_type_id {
-            false => reduce_t0(f, bits),
-            true => reduce_t1(f, bits),
-        }?;
-        reduction.bits_read += length_type_bits_read;
-        Ok(reduction)
-    }
-
-    #[inline]
-    fn compare(
-        f: fn(usize, usize) -> bool,
-        bits: &mut impl Iterator<Item = bool>,
-    ) -> ComputationResult {
-        let (length_type_id, length_type_bits_read) = get_length_type(bits)?;
-        let mut comparison = match length_type_id {
-            false => compare_t0(f, bits),
-            true => compare_t1(f, bits),
-        }?;
-        comparison.bits_read += length_type_bits_read;
-        Ok(comparison)
-    }
-
     use Operation as Op;
     let mut operation = match operation {
         Op::Sum => reduce(Add::add, bits),
@@ -67,8 +28,9 @@ pub fn compute(bits: &mut impl Iterator<Item = bool>) -> ComputationResult {
 
 fn literal(bits: &mut impl Iterator<Item = bool>) -> ComputationResult {
     let (literal, bits_read) = usize::from_bits(&mut LiteralBits::new(bits));
+    // 5 bits read from bit stream per nibble of literal
     let bits_read = (bits_read / 4) * 5;
-    Ok((literal, bits_read).into())
+    Ok(Computation::new(literal, bits_read))
 }
 
 struct LiteralBits<'a, I> {
@@ -112,6 +74,20 @@ where
     }
 }
 
+#[inline]
+fn reduce(
+    f: fn(usize, usize) -> usize,
+    bits: &mut impl Iterator<Item = bool>,
+) -> ComputationResult {
+    let (length_type_id, length_type_bits_read) = get_length_type(bits)?;
+    let mut reduction = match length_type_id {
+        false => reduce_t0(f, bits),
+        true => reduce_t1(f, bits),
+    }?;
+    reduction.bits_read += length_type_bits_read;
+    Ok(reduction)
+}
+
 fn reduce_t0<F>(mut f: F, bits: &mut impl Iterator<Item = bool>) -> ComputationResult
 where
     F: FnMut(usize, usize) -> usize,
@@ -150,6 +126,20 @@ where
     Ok(accum)
 }
 
+#[inline]
+fn compare(
+    f: fn(usize, usize) -> bool,
+    bits: &mut impl Iterator<Item = bool>,
+) -> ComputationResult {
+    let (length_type_id, length_type_bits_read) = get_length_type(bits)?;
+    let mut comparison = match length_type_id {
+        false => compare_t0(f, bits),
+        true => compare_t1(f, bits),
+    }?;
+    comparison.bits_read += length_type_bits_read;
+    Ok(comparison)
+}
+
 fn compare_t0<F>(mut f: F, bits: &mut impl Iterator<Item = bool>) -> ComputationResult
 where
     F: FnMut(usize, usize) -> bool,
@@ -164,12 +154,11 @@ where
     if packet_bits_read != num_bits as usize {
         Err("Comparison operation length field did not match exactly two subpackets")
     } else {
-        let comparison = f(first.value, second.value) as usize;
-
         let computation = Computation {
-            value: comparison,
+            value: f(first.value, second.value) as usize,
             bits_read: num_bits_bits_read + packet_bits_read,
         };
+
         Ok(computation)
     }
 }
@@ -185,12 +174,11 @@ where
         let first = compute(bits)?;
         let second = compute(bits)?;
 
-        let comparison = f(first.value, second.value) as usize;
-
         let computation = Computation {
-            value: comparison,
+            value: f(first.value, second.value) as usize,
             bits_read: num_packets_bits_read + first.bits_read + second.bits_read,
         };
+
         Ok(computation)
     }
 }
@@ -211,6 +199,15 @@ fn get_header(
         (version, operation),
         VERSION_FIELD_SIZE + TYPE_ID_FIELD_SIZE,
     ))
+}
+
+#[inline]
+fn get_length_type(bits: &mut impl Iterator<Item = bool>) -> Result<(bool, usize), ComputeError> {
+    const LENGTH_TYPE_FIELD_SIZE: usize = 1;
+    let length_type_id = bits
+        .next()
+        .ok_or("Expected length type ID, but bit stream ended")?;
+    Ok((length_type_id, LENGTH_TYPE_FIELD_SIZE))
 }
 
 #[inline]
@@ -251,16 +248,10 @@ pub struct Computation {
     pub bits_read: usize,
 }
 
-impl<T1, T2> From<(T1, T2)> for Computation
-where
-    usize: From<T1> + From<T2>,
-{
+impl Computation {
     #[inline]
-    fn from(value: (T1, T2)) -> Self {
-        Computation {
-            value: value.0.into(),
-            bits_read: value.1.into(),
-        }
+    fn new(value: usize, bits_read: usize) -> Self {
+        Computation { value, bits_read }
     }
 }
 
