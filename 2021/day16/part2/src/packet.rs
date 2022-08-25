@@ -33,47 +33,6 @@ fn literal(bits: &mut impl Iterator<Item = bool>) -> ComputationResult {
     Ok(Computation::new(literal, bits_read))
 }
 
-struct LiteralBits<'a, I> {
-    inner: &'a mut I,
-    state: u8,
-    last: bool,
-}
-
-impl<'a, I> LiteralBits<'a, I> {
-    #[inline]
-    fn new(inner: &'a mut I) -> Self {
-        LiteralBits {
-            inner,
-            state: 0,
-            last: false,
-        }
-    }
-}
-
-impl<'a, I> Iterator for LiteralBits<'a, I>
-where
-    I: Iterator<Item = bool>,
-{
-    type Item = bool;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.state == 0 {
-            if self.last {
-                return None;
-            } else {
-                let group_id = self.inner.next()?;
-                if !group_id {
-                    self.last = true;
-                }
-                self.state = 4;
-            }
-        }
-        self.state -= 1;
-        self.inner.next()
-    }
-}
-
 #[inline]
 fn reduce(
     f: fn(usize, usize) -> usize,
@@ -286,6 +245,47 @@ impl TryFrom<u8> for Operation {
             7 => Ok(Self::Equal),
             _ => Err("Unrecognized operation type"),
         }
+    }
+}
+
+struct LiteralBits<'a, I> {
+    inner: &'a mut I,
+    state: u8,
+    last: bool,
+}
+
+impl<'a, I> LiteralBits<'a, I> {
+    #[inline]
+    fn new(inner: &'a mut I) -> Self {
+        LiteralBits {
+            inner,
+            state: 0,
+            last: false,
+        }
+    }
+}
+
+impl<'a, I> Iterator for LiteralBits<'a, I>
+where
+    I: Iterator<Item = bool>,
+{
+    type Item = bool;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.state == 0 {
+            if self.last {
+                return None;
+            } else {
+                let group_id = self.inner.next()?;
+                if !group_id {
+                    self.last = true;
+                }
+                self.state = 4;
+            }
+        }
+        self.state -= 1;
+        self.inner.next()
     }
 }
 
