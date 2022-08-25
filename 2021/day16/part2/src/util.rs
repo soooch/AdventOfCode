@@ -152,3 +152,45 @@ pub trait Fencable {
 }
 
 impl<I: Iterator> Fencable for I {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn from_bits_test_u8() {
+        let num = u8::from_bits([1, 0, 1, 1, 0, 1, 1, 1].into_iter().map(|b| {
+            if b == 1 {
+                true
+            } else {
+                false
+            }
+        }));
+
+        assert_eq!(num, 0b10110111);
+
+        let num =
+            u8::from_bits([1, 0, 1, 1, 0, 1].into_iter().map(
+                |b| {
+                    if b == 1 {
+                        true
+                    } else {
+                        false
+                    }
+                },
+            ));
+
+        assert_eq!(num, 0b101101);
+    }
+
+    #[test]
+    fn from_bits_test_u16() {
+        let num = u16::from_bits(
+            [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1]
+                .into_iter()
+                .map(|b| if b == 1 { true } else { false }),
+        );
+
+        assert_eq!(num, 0b1011011101010111);
+    }
+}
