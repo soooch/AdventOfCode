@@ -1,6 +1,8 @@
 //! A few small and unrelated utility things.
 
+use core::iter::FusedIterator;
 use core::mem::MaybeUninit;
+use num_traits::PrimInt;
 
 /// A trait providing the [next_n](NextN::next_n) method for Iterators
 pub trait NextN: Iterator {
@@ -23,6 +25,72 @@ pub trait NextN: Iterator {
 }
 
 impl<I: Iterator> NextN for I {}
+
+pub struct CountIter<I> {
+    inner: I,
+    count: usize,
+}
+
+impl<I> CountIter<I> {
+    #[inline]
+    pub fn new(inner: I) -> CountIter<I> {
+        CountIter { inner, count: 0 }
+    }
+
+    pub fn iter_count(&self) -> usize {
+        self.count
+    }
+}
+
+impl<I> Iterator for CountIter<I>
+where
+    I: Iterator,
+{
+    type Item = <I as Iterator>::Item;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.count += 1;
+        self.inner.next()
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
+}
+
+impl<I: ExactSizeIterator> ExactSizeIterator for CountIter<I> {}
+impl<I: FusedIterator> FusedIterator for CountIter<I> {}
+
+pub trait Countable {
+    #[inline]
+    fn counted(self) -> CountIter<Self>
+    where
+        Self: Sized,
+    {
+        CountIter::new(self)
+    }
+}
+
+impl<I: Iterator> Countable for I {}
+
+/// A trait providing the [from_bits](FromBits::from_bits) method for integers
+pub trait FromBits: PrimInt + From<bool> {
+    /// Contructs `Self` from an iterator over bits from MSB to LSB
+    /// Also counts the number of bits consumed for type 0 packets
+    #[inline]
+    fn from_bits<I>(bits: I) -> Self
+    where
+        I: Iterator<Item = bool>,
+    {
+        bits.fold(Self::zero(), |acc, b| (acc << 1) | b.into())
+    }
+}
+
+impl FromBits for u8 {}
+impl FromBits for u16 {}
+impl FromBits for usize {}
 
 /// An [Iterator] which limits iteration of the [Iterator] it wraps.
 /// See the [fence](Fencable::fence) method.

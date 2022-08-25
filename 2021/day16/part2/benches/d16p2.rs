@@ -4,13 +4,13 @@ use day16_part2::{nibble::Nibble, packet};
 fn bench_compute() -> usize {
     let input = include_str!("../../input.txt");
 
-    let mut bits = input
+    let bits = input
         .trim()
         .bytes()
         .map(|b| Nibble::from_hex_ascii(b).unwrap())
         .flat_map(Nibble::into_bits);
 
-    packet::compute(&mut bits).unwrap().value
+    packet::solve(bits).unwrap()
 }
 
 pub fn criterion_benchmark(c: &mut Criterion) {
