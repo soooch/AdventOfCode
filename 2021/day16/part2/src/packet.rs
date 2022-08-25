@@ -4,7 +4,7 @@ use crate::util::{CountIter, Countable, FromBits};
 use core::cmp;
 use core::ops::{Add, Mul};
 
-pub fn solve(bits: impl Iterator<Item = bool>) -> ComputationResult {
+pub fn solve(bits: impl Iterator<Item = bool>) -> Result<usize, ComputeError> {
     compute(&mut bits.counted())
 }
 
@@ -12,7 +12,7 @@ pub fn solve(bits: impl Iterator<Item = bool>) -> ComputationResult {
 ///
 /// # Arguments
 /// * `bits` - a mutable reference to an [Iterator] over the bits of the packet.
-fn compute<I>(bits: &mut CountIter<I>) -> ComputationResult
+fn compute<I>(bits: &mut CountIter<I>) -> Result<usize, ComputeError>
 where
     I: Iterator<Item = bool>,
 {
@@ -31,7 +31,7 @@ where
     }
 }
 
-fn literal<I>(bits: &mut CountIter<I>) -> ComputationResult
+fn literal<I>(bits: &mut CountIter<I>) -> Result<usize, ComputeError>
 where
     I: Iterator<Item = bool>,
 {
@@ -39,7 +39,7 @@ where
 }
 
 #[inline]
-fn reduce<I>(f: fn(usize, usize) -> usize, bits: &mut CountIter<I>) -> ComputationResult
+fn reduce<I>(f: fn(usize, usize) -> usize, bits: &mut CountIter<I>) -> Result<usize, ComputeError>
 where
     I: Iterator<Item = bool>,
 {
@@ -50,7 +50,10 @@ where
     }
 }
 
-fn reduce_t0<I>(f: fn(usize, usize) -> usize, bits: &mut CountIter<I>) -> ComputationResult
+fn reduce_t0<I>(
+    f: fn(usize, usize) -> usize,
+    bits: &mut CountIter<I>,
+) -> Result<usize, ComputeError>
 where
     I: Iterator<Item = bool>,
 {
@@ -68,7 +71,10 @@ where
     Ok(accum)
 }
 
-fn reduce_t1<I>(f: fn(usize, usize) -> usize, bits: &mut CountIter<I>) -> ComputationResult
+fn reduce_t1<I>(
+    f: fn(usize, usize) -> usize,
+    bits: &mut CountIter<I>,
+) -> Result<usize, ComputeError>
 where
     I: Iterator<Item = bool>,
 {
@@ -86,7 +92,7 @@ where
 }
 
 #[inline]
-fn compare<I>(f: fn(usize, usize) -> bool, bits: &mut CountIter<I>) -> ComputationResult
+fn compare<I>(f: fn(usize, usize) -> bool, bits: &mut CountIter<I>) -> Result<usize, ComputeError>
 where
     I: Iterator<Item = bool>,
 {
@@ -97,7 +103,10 @@ where
     }
 }
 
-fn compare_t0<I>(f: fn(usize, usize) -> bool, bits: &mut CountIter<I>) -> ComputationResult
+fn compare_t0<I>(
+    f: fn(usize, usize) -> bool,
+    bits: &mut CountIter<I>,
+) -> Result<usize, ComputeError>
 where
     I: Iterator<Item = bool>,
 {
@@ -117,7 +126,10 @@ where
     }
 }
 
-fn compare_t1<I>(f: fn(usize, usize) -> bool, bits: &mut CountIter<I>) -> ComputationResult
+fn compare_t1<I>(
+    f: fn(usize, usize) -> bool,
+    bits: &mut CountIter<I>,
+) -> Result<usize, ComputeError>
 where
     I: Iterator<Item = bool>,
 {
@@ -194,8 +206,6 @@ where
 }
 
 type ComputeError = &'static str;
-
-type ComputationResult = Result<usize, ComputeError>;
 
 enum Operation {
     Sum,
