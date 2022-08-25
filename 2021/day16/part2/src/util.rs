@@ -37,6 +37,7 @@ impl<I> CountIter<I> {
         CountIter { inner, count: 0 }
     }
 
+    #[inline]
     pub fn iter_count(&self) -> usize {
         self.count
     }
