@@ -46,6 +46,7 @@ where
                 Op::Greater => compare(|a, b| a > b, bits, length),
                 Op::Less => compare(|a, b| a < b, bits, length),
                 Op::Equal => compare(|a, b| a == b, bits, length),
+                // the compiler should know this
                 _ => unsafe { core::hint::unreachable_unchecked() },
             }
         }
