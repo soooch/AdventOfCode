@@ -20,14 +20,35 @@ where
 
     use Operation as Op;
     match operation {
-        Op::Sum => reduce(Add::add, bits),
-        Op::Product => reduce(Mul::mul, bits),
-        Op::Minimum => reduce(cmp::min, bits),
-        Op::Maximim => reduce(cmp::max, bits),
         Op::Literal => literal(bits),
-        Op::Greater => compare(|a, b| a > b, bits),
-        Op::Less => compare(|a, b| a < b, bits),
-        Op::Equal => compare(|a, b| a == b, bits),
+        other => {
+            let length_type_id = get_length_type(bits)?;
+            // can't return a tuple of (length, reduce, compare)
+            // from one match for some reason
+            let length = match length_type_id {
+                // these two calls should inline and share a lot of asm
+                false => get_length_t0(bits),
+                true => get_length_t1(bits),
+            }?;
+            let reduce = match length_type_id {
+                false => reduce_t0,
+                true => reduce_t1,
+            };
+            let compare = match length_type_id {
+                false => compare_t0,
+                true => compare_t1,
+            };
+            match other {
+                Op::Sum => reduce(Add::add, bits, length),
+                Op::Product => reduce(Mul::mul, bits, length),
+                Op::Minimum => reduce(cmp::min, bits, length),
+                Op::Maximim => reduce(cmp::max, bits, length),
+                Op::Greater => compare(|a, b| a > b, bits, length),
+                Op::Less => compare(|a, b| a < b, bits, length),
+                Op::Equal => compare(|a, b| a == b, bits, length),
+                _ => unsafe { core::hint::unreachable_unchecked() },
+            }
+        }
     }
 }
 
@@ -38,27 +59,14 @@ where
     Ok(usize::from_bits(&mut LiteralBits::new(bits)))
 }
 
-#[inline]
-fn reduce<I>(f: fn(usize, usize) -> usize, bits: &mut CountIter<I>) -> Result<usize, ComputeError>
-where
-    I: Iterator<Item = bool>,
-{
-    let length_type_id = get_length_type(bits)?;
-    match length_type_id {
-        false => reduce_t0(f, bits),
-        true => reduce_t1(f, bits),
-    }
-}
-
 fn reduce_t0<I>(
     f: fn(usize, usize) -> usize,
     bits: &mut CountIter<I>,
+    num_bits: u16,
 ) -> Result<usize, ComputeError>
 where
     I: Iterator<Item = bool>,
 {
-    let num_bits = get_length_t0(bits)?;
-
     let final_bits_read = bits.iter_count() + num_bits as usize;
 
     let mut accum = compute(bits)?;
@@ -74,12 +82,11 @@ where
 fn reduce_t1<I>(
     f: fn(usize, usize) -> usize,
     bits: &mut CountIter<I>,
+    num_packets: u16,
 ) -> Result<usize, ComputeError>
 where
     I: Iterator<Item = bool>,
 {
-    let num_packets = get_length_t1(bits)?;
-
     let mut accum = compute(bits)?;
     let num_packets = num_packets - 1;
 
@@ -91,27 +98,14 @@ where
     Ok(accum)
 }
 
-#[inline]
-fn compare<I>(f: fn(usize, usize) -> bool, bits: &mut CountIter<I>) -> Result<usize, ComputeError>
-where
-    I: Iterator<Item = bool>,
-{
-    let length_type_id = get_length_type(bits)?;
-    match length_type_id {
-        false => compare_t0(f, bits),
-        true => compare_t1(f, bits),
-    }
-}
-
 fn compare_t0<I>(
     f: fn(usize, usize) -> bool,
     bits: &mut CountIter<I>,
+    num_bits: u16,
 ) -> Result<usize, ComputeError>
 where
     I: Iterator<Item = bool>,
 {
-    let num_bits = get_length_t0(bits)?;
-
     let bits_read = bits.iter_count();
 
     let first = compute(bits)?;
@@ -129,11 +123,11 @@ where
 fn compare_t1<I>(
     f: fn(usize, usize) -> bool,
     bits: &mut CountIter<I>,
+    num_packets: u16,
 ) -> Result<usize, ComputeError>
 where
     I: Iterator<Item = bool>,
 {
-    let num_packets = get_length_t1(bits)?;
     if num_packets != 2 {
         Err("Comparison operation length field did not match exactly two subpackets")
     } else {
@@ -277,4 +271,3 @@ where
         self.inner.next()
     }
 }
-
